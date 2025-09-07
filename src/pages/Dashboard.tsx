@@ -1,23 +1,40 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/enhanced-button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Users, 
-  TrendingUp, 
-  AlertTriangle, 
-  BookOpen, 
-  Upload,
-  Search,
-  BarChart3,
-  GraduationCap,
-  Target
-} from "lucide-react";
+import React, { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, TrendingUp, AlertTriangle, BookOpen, Calendar, GraduationCap, LogOut, Settings } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import RiskDistributionChart from '@/components/charts/RiskDistributionChart';
+import StudentsManager from '@/components/students/StudentsManager';
 
 const Dashboard = () => {
-  const [userRole] = useState<"coordinator" | "teacher">("coordinator");
+  const { user, userRole, signOut, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   // Datos simulados para demostración
   const dashboardData = {
@@ -33,95 +50,96 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-secondary">
-      {/* Header */}
-      <header className="bg-card border-b shadow-card">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-primary p-2 rounded-lg">
-                <GraduationCap className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">SEPIA</h1>
-                <p className="text-sm text-muted-foreground">Sistema de Predicción de Deserción Estudiantil</p>
+                <h1 className="text-3xl font-bold text-foreground">SEPIA Dashboard</h1>
+                <p className="text-muted-foreground">
+                  {userRole === 'coordinador_academico' ? 'Coordinador Académico' : 'Docente'} - {user?.email}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="text-sm">
-                {userRole === "coordinator" ? "Coordinador Académico" : "Docente"}
-              </Badge>
-              <Button variant="outline" size="sm">Cerrar Sesión</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Configuración
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
+              </Button>
             </div>
           </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-6 py-8">
-        {/* Métricas principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="shadow-card hover:shadow-elevated transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Estudiantes</CardTitle>
-              <Users className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.totalStudents.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+12% desde el semestre anterior</p>
-            </CardContent>
-          </Card>
+          {/* Métricas principales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Estudiantes</CardTitle>
+                <Users className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardData.totalStudents.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">+12% desde el semestre anterior</p>
+              </CardContent>
+            </Card>
 
-          <Card className="shadow-card hover:shadow-elevated transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En Riesgo</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{dashboardData.atRiskStudents}</div>
-              <p className="text-xs text-muted-foreground">Requieren intervención inmediata</p>
-            </CardContent>
-          </Card>
+            <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">En Riesgo</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">{dashboardData.atRiskStudents}</div>
+                <p className="text-xs text-muted-foreground">Requieren intervención inmediata</p>
+              </CardContent>
+            </Card>
 
-          <Card className="shadow-card hover:shadow-elevated transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Predicción General</CardTitle>
-              <TrendingUp className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.dropoutPrediction}%</div>
-              <p className="text-xs text-muted-foreground">Tasa de deserción proyectada</p>
-            </CardContent>
-          </Card>
+            <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Predicción General</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardData.dropoutPrediction}%</div>
+                <p className="text-xs text-muted-foreground">Tasa de deserción proyectada</p>
+              </CardContent>
+            </Card>
 
-          <Card className="shadow-card hover:shadow-elevated transition-all">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Asistencia Promedio</CardTitle>
-              <BookOpen className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.averageAttendance}%</div>
-              <p className="text-xs text-muted-foreground">En todas las materias</p>
-            </CardContent>
-          </Card>
+            <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Asistencia Promedio</CardTitle>
+                <BookOpen className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardData.averageAttendance}%</div>
+                <p className="text-xs text-muted-foreground">En todas las materias</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Contenido principal con tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="students">Estudiantes</TabsTrigger>
             <TabsTrigger value="predictions">Predicciones</TabsTrigger>
-            <TabsTrigger value="data">Gestión de Datos</TabsTrigger>
+            {userRole === 'docente' && <TabsTrigger value="grades">Calificaciones</TabsTrigger>}
             <TabsTrigger value="reports">Reportes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-card">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-primary" />
-                    Estudiantes Recientes en Riesgo
-                  </CardTitle>
+                  <CardTitle>Estudiantes Recientes en Riesgo</CardTitle>
                   <CardDescription>
                     Predicciones más recientes del sistema de IA
                   </CardDescription>
@@ -147,126 +165,82 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-card">
+              <Card className="border-border/50 bg-background/95 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    Distribución de Riesgos
-                  </CardTitle>
+                  <CardTitle>Distribución de Riesgos</CardTitle>
                   <CardDescription>
-                    Clasificación actual de estudiantes
+                    Visualización de la clasificación de riesgos
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Riesgo Alto</span>
-                        <span>89 estudiantes</span>
-                      </div>
-                      <Progress value={7.1} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Riesgo Medio</span>
-                        <span>156 estudiantes</span>
-                      </div>
-                      <Progress value={12.5} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Riesgo Bajo</span>
-                        <span>1,002 estudiantes</span>
-                      </div>
-                      <Progress value={80.4} className="h-2" />
-                    </div>
-                  </div>
+                <CardContent>
+                  <RiskDistributionChart />
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
+          <TabsContent value="students" className="space-y-6">
+            <StudentsManager />
+          </TabsContent>
+
           <TabsContent value="predictions" className="space-y-6">
-            <Card className="shadow-card">
+            <Card>
               <CardHeader>
-                <CardTitle>Consulta Individual de Estudiante</CardTitle>
+                <CardTitle>Predicciones de Deserción</CardTitle>
                 <CardDescription>
-                  Buscar y analizar la predicción de deserción de un estudiante específico
+                  Análisis predictivo y recomendaciones automáticas
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <input 
-                      type="text" 
-                      placeholder="Buscar por ID, nombre o documento..."
-                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                    />
-                  </div>
-                  <Button variant="academic" className="px-6">
-                    <Search className="h-4 w-4 mr-2" />
-                    Buscar
-                  </Button>
+                <div className="text-center py-8">
+                  <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    {userRole === 'coordinador_academico' 
+                      ? 'Genera predicciones automáticas para identificar estudiantes en riesgo'
+                      : 'Consulta las predicciones generadas por el coordinador académico'
+                    }
+                  </p>
+                  {userRole === 'coordinador_academico' && (
+                    <Button className="mt-4">
+                      Generar Predicciones
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="data" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {userRole === "coordinator" && (
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle>Carga Masiva de Estudiantes</CardTitle>
-                    <CardDescription>
-                      Importar datos de estudiantes desde archivo CSV
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button variant="academic" className="w-full">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Cargar Archivo CSV
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className="shadow-card">
+          {userRole === 'docente' && (
+            <TabsContent value="grades" className="space-y-6">
+              <Card>
                 <CardHeader>
-                  <CardTitle>
-                    {userRole === "coordinator" ? "Gestión de Calificaciones" : "Cargar Calificaciones"}
-                  </CardTitle>
+                  <CardTitle>Gestión de Calificaciones</CardTitle>
                   <CardDescription>
-                    Administrar las calificaciones de los estudiantes
+                    Registra y administra las calificaciones de tus estudiantes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="secondary" className="w-full">
-                    Gestionar Calificaciones
-                  </Button>
+                  <div className="text-center py-8">
+                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      Carga las calificaciones de tus materias y registra la asistencia
+                    </p>
+                    <div className="flex gap-4 justify-center">
+                      <Button variant="outline">
+                        Cargar Calificaciones
+                      </Button>
+                      <Button variant="outline">
+                        Registrar Asistencia
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle>
-                    {userRole === "coordinator" ? "Gestión de Asistencias" : "Cargar Asistencias"}
-                  </CardTitle>
-                  <CardDescription>
-                    Administrar el registro de asistencias
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="secondary" className="w-full">
-                    Gestionar Asistencias
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           <TabsContent value="reports" className="space-y-6">
-            <Card className="shadow-card">
+            <Card>
               <CardHeader>
                 <CardTitle>Generación de Reportes</CardTitle>
                 <CardDescription>
@@ -292,7 +266,7 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 };
