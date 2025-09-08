@@ -6,10 +6,10 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  userRole: 'coordinador_academico' | 'docente' | null;
+  userRole: 'coordinador_academico' | 'docente' | 'administrador' | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, role: 'coordinador_academico' | 'docente') => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, role: 'coordinador_academico' | 'docente' | 'administrador') => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -26,7 +26,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<'coordinador_academico' | 'docente' | null>(null);
+  const [userRole, setUserRole] = useState<'coordinador_academico' | 'docente' | 'administrador' | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, role: 'coordinador_academico' | 'docente') => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, role: 'coordinador_academico' | 'docente' | 'administrador') => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       

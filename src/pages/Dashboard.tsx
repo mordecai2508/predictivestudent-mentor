@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RiskDistributionChart from '@/components/charts/RiskDistributionChart';
 import StudentsManager from '@/components/students/StudentsManager';
+import { GradesManager } from '@/components/grades/GradesManager';
+import { SubjectsManager } from '@/components/subjects/SubjectsManager';
+import { AttendanceManager } from '@/components/attendance/AttendanceManager';
+import { SettingsModal } from '@/components/settings/SettingsModal';
+import { useDashboard } from '@/hooks/useDashboard';
 
 const Dashboard = () => {
   const { user, userRole, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { stats, recentRiskStudents, loading: dashboardLoading } = useDashboard();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<'grades' | 'attendance' | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -62,12 +70,13 @@ const Dashboard = () => {
               <div>
                 <h1 className="text-3xl font-bold text-foreground">SEPIA Dashboard</h1>
                 <p className="text-muted-foreground">
-                  {userRole === 'coordinador_academico' ? 'Coordinador Académico' : 'Docente'} - {user?.email}
+                  {userRole === 'coordinador_academico' ? 'Coordinador Académico' : 
+                   userRole === 'administrador' ? 'Administrador' : 'Docente'} - {user?.email}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Configuración
               </Button>
@@ -86,8 +95,10 @@ const Dashboard = () => {
                 <Users className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardData.totalStudents.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">+12% desde el semestre anterior</p>
+                <div className="text-2xl font-bold">
+                  {dashboardLoading ? '...' : stats.totalStudents.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">Estudiantes activos</p>
               </CardContent>
             </Card>
 
@@ -97,7 +108,9 @@ const Dashboard = () => {
                 <AlertTriangle className="h-4 w-4 text-destructive" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-destructive">{dashboardData.atRiskStudents}</div>
+                <div className="text-2xl font-bold text-destructive">
+                  {dashboardLoading ? '...' : stats.atRiskStudents}
+                </div>
                 <p className="text-xs text-muted-foreground">Requieren intervención inmediata</p>
               </CardContent>
             </Card>
@@ -108,8 +121,10 @@ const Dashboard = () => {
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardData.dropoutPrediction}%</div>
-                <p className="text-xs text-muted-foreground">Tasa de deserción proyectada</p>
+                <div className="text-2xl font-bold">
+                  {dashboardLoading ? '...' : `${stats.dropoutPrediction}%`}
+                </div>
+                <p className="text-xs text-muted-foreground">Riesgo promedio de deserción</p>
               </CardContent>
             </Card>
 
@@ -119,7 +134,9 @@ const Dashboard = () => {
                 <BookOpen className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardData.averageAttendance}%</div>
+                <div className="text-2xl font-bold">
+                  {dashboardLoading ? '...' : `${stats.averageAttendance}%`}
+                </div>
                 <p className="text-xs text-muted-foreground">En todas las materias</p>
               </CardContent>
             </Card>
@@ -127,11 +144,12 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={`grid w-full ${userRole === 'administrador' ? 'grid-cols-6' : userRole === 'docente' ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="overview">Resumen</TabsTrigger>
             <TabsTrigger value="students">Estudiantes</TabsTrigger>
             <TabsTrigger value="predictions">Predicciones</TabsTrigger>
-            {userRole === 'docente' && <TabsTrigger value="grades">Calificaciones</TabsTrigger>}
+            {(userRole === 'docente' || userRole === 'administrador') && <TabsTrigger value="grades">Calificaciones</TabsTrigger>}
+            {userRole === 'administrador' && <TabsTrigger value="subjects">Materias</TabsTrigger>}
             <TabsTrigger value="reports">Reportes</TabsTrigger>
           </TabsList>
 
@@ -145,23 +163,33 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {dashboardData.recentPredictions.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{student.name}</p>
-                        <p className="text-sm text-muted-foreground">ID: {student.id}</p>
-                      </div>
-                      <div className="text-right space-y-1">
-                        <Badge 
-                          variant={student.risk === "Alto" ? "destructive" : student.risk === "Medio" ? "secondary" : "outline"}
-                          className="text-xs"
-                        >
-                          {student.risk} Riesgo
-                        </Badge>
-                        <div className="text-sm font-medium">{student.probability}%</div>
-                      </div>
+                  {dashboardLoading ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
                     </div>
-                  ))}
+                  ) : recentRiskStudents.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">No hay predicciones recientes</p>
+                    </div>
+                  ) : (
+                    recentRiskStudents.map((student) => (
+                      <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{student.name}</p>
+                          <p className="text-sm text-muted-foreground">Código: {student.student_code}</p>
+                        </div>
+                        <div className="text-right space-y-1">
+                          <Badge 
+                            variant={student.risk === "Alto" ? "destructive" : student.risk === "Medio" ? "secondary" : "outline"}
+                            className="text-xs"
+                          >
+                            {student.risk} Riesgo
+                          </Badge>
+                          <div className="text-sm font-medium">{student.probability}%</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -195,12 +223,12 @@ const Dashboard = () => {
                 <div className="text-center py-8">
                   <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    {userRole === 'coordinador_academico' 
+                    {(userRole === 'coordinador_academico' || userRole === 'administrador')
                       ? 'Genera predicciones automáticas para identificar estudiantes en riesgo'
                       : 'Consulta las predicciones generadas por el coordinador académico'
                     }
                   </p>
-                  {userRole === 'coordinador_academico' && (
+                  {(userRole === 'coordinador_academico' || userRole === 'administrador') && (
                     <Button className="mt-4">
                       Generar Predicciones
                     </Button>
@@ -210,32 +238,15 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {userRole === 'docente' && (
+          {(userRole === 'docente' || userRole === 'administrador') && (
             <TabsContent value="grades" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestión de Calificaciones</CardTitle>
-                  <CardDescription>
-                    Registra y administra las calificaciones de tus estudiantes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      Carga las calificaciones de tus materias y registra la asistencia
-                    </p>
-                    <div className="flex gap-4 justify-center">
-                      <Button variant="outline">
-                        Cargar Calificaciones
-                      </Button>
-                      <Button variant="outline">
-                        Registrar Asistencia
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <GradesManager />
+            </TabsContent>
+          )}
+
+          {userRole === 'administrador' && (
+            <TabsContent value="subjects" className="space-y-6">
+              <SubjectsManager />
             </TabsContent>
           )}
 
@@ -267,6 +278,38 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+      {/* Feature Modals */}
+      {activeFeature === 'grades' && (
+        <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+          <div className="container mx-auto p-4">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Gestión de Calificaciones</h1>
+              <Button variant="outline" onClick={() => setActiveFeature(null)}>
+                Volver al Dashboard
+              </Button>
+            </div>
+            <GradesManager />
+          </div>
+        </div>
+      )}
+
+      {activeFeature === 'attendance' && (
+        <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+          <div className="container mx-auto p-4">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold">Registro de Asistencia</h1>
+              <Button variant="outline" onClick={() => setActiveFeature(null)}>
+                Volver al Dashboard
+              </Button>
+            </div>
+            <AttendanceManager />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
