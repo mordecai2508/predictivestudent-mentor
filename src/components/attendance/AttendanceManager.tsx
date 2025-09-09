@@ -59,23 +59,35 @@ export const AttendanceManager = () => {
     }
   };
 
-  const fetchStudents = async (program?: string) => {
+  const fetchStudentsBySubject = async (subjectId: string) => {
     try {
-      let query = supabase
-        .from('students')
-        .select('id, student_code, first_name, last_name, program')
-        .eq('status', 'activo')
-        .order('student_code');
+      // Get enrolled student IDs
+      const { data: enrollmentData, error: enrollmentError } = await supabase
+        .from('enrollments')
+        .select('student_id')
+        .eq('subject_id', subjectId)
+        .eq('academic_period', academicPeriod)
+        .eq('status', 'activo');
 
-      if (program) {
-        query = query.eq('program', program);
+      if (enrollmentError) throw enrollmentError;
+
+      const studentIds = enrollmentData?.map(e => e.student_id) || [];
+
+      if (studentIds.length === 0) {
+        setStudents([]);
+        setAttendanceRecords({});
+        return;
       }
 
-      const { data, error } = await query;
+      // Get student details
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id, student_code, first_name, last_name, program')
+        .in('id', studentIds);
 
-      if (error) throw error;
+      if (studentError) throw studentError;
 
-      const studentsData = data || [];
+      const studentsData = studentData || [];
       setStudents(studentsData);
 
       // Initialize attendance records
@@ -90,15 +102,14 @@ export const AttendanceManager = () => {
       });
       setAttendanceRecords(initialRecords);
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error('Error fetching students by subject:', error);
     }
   };
 
   const handleSubjectChange = (subjectId: string) => {
     setSelectedSubject(subjectId);
-    const subject = subjects.find(s => s.id === subjectId);
-    if (subject) {
-      fetchStudents(subject.program);
+    if (subjectId) {
+      fetchStudentsBySubject(subjectId);
     }
   };
 

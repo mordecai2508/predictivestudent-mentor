@@ -119,6 +119,39 @@ export type Database = {
           },
         ]
       }
+      enrollments: {
+        Row: {
+          academic_period: string
+          created_at: string | null
+          created_by: string | null
+          enrollment_date: string | null
+          id: string
+          status: string | null
+          student_id: string
+          subject_id: string
+        }
+        Insert: {
+          academic_period: string
+          created_at?: string | null
+          created_by?: string | null
+          enrollment_date?: string | null
+          id?: string
+          status?: string | null
+          student_id: string
+          subject_id: string
+        }
+        Update: {
+          academic_period?: string
+          created_at?: string | null
+          created_by?: string | null
+          enrollment_date?: string | null
+          id?: string
+          status?: string | null
+          student_id?: string
+          subject_id?: string
+        }
+        Relationships: []
+      }
       grades: {
         Row: {
           academic_period: string
@@ -362,6 +395,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subject_assignments: {
+        Row: {
+          academic_period: string
+          assigned_date: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          status: string | null
+          subject_id: string
+          teacher_id: string
+        }
+        Insert: {
+          academic_period: string
+          assigned_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          status?: string | null
+          subject_id: string
+          teacher_id: string
+        }
+        Update: {
+          academic_period?: string
+          assigned_date?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          status?: string | null
+          subject_id?: string
+          teacher_id?: string
+        }
+        Relationships: []
       }
       subjects: {
         Row: {
